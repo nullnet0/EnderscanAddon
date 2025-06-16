@@ -16,10 +16,12 @@ import xyz.nullnetdev.enderscanaddon.mixin.MultiplayerScreenMixin;
 import xyz.nullnetdev.enderscanaddon.utils.API;
 import xyz.nullnetdev.enderscanaddon.utils.objects.FoundServer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ScannerScreen extends WindowScreen {
     private WTable table;
+    private List<FoundServer> servers = new ArrayList<>();
 
     public ScannerScreen(GuiTheme theme) {
         super(theme, "Enderscan");
@@ -28,9 +30,11 @@ public class ScannerScreen extends WindowScreen {
     @Override
     public void initWidgets() {
         try {
+            add(theme.horizontalSeparator("Utility")).expandX();
             WButton clear = add(theme.button("Clear found servers")).widget();
             add(theme.label("Removes all servers that contain word 'Enderscan' in their name.").color(theme.textSecondaryColor()));
             clear.action = () -> {
+                clear.set("Clearing...");
                 MinecraftClient client = MinecraftClient.getInstance();
                 ServerList list = new ServerList(client);
                 list.loadFile();
@@ -49,15 +53,40 @@ public class ScannerScreen extends WindowScreen {
                 clear.set("Cleared!");
             };
 
+            WButton addAll = add(theme.button("Add all")).widget();
+            add(theme.label("Use this to add all of servers that were found").color(theme.textSecondaryColor()));
+            addAll.action = () -> {
+                addAll.set("Adding...");
+                MinecraftClient client = MinecraftClient.getInstance();
+                ServerList list = new ServerList(client);
+                list.loadFile();
+
+                for (FoundServer server : servers) {
+                    ServerInfo info = new ServerInfo(
+                        "Enderscan - " + server.ip(),
+                        server.ip(),
+                        ServerInfo.ServerType.OTHER
+                    );
+                    list.add(info, false);
+                }
+
+                list.saveFile();
+                addAll.set("Added!");
+            };
+
 
             add(theme.horizontalSeparator("Amount")).expandX();
             WTextBox amount = add(theme.textBox("10", "10")).minWidth(100).widget();
+            add(theme.label("Amount of servers to retrieve.").color(theme.textSecondaryColor()));
             add(theme.horizontalSeparator("Version")).expandX();
             WTextBox version = add(theme.textBox("", "1.21.5")).minWidth(60).widget();
+            add(theme.label("Version of servers to find. (leave blank for any)").color(theme.textSecondaryColor()));
             add(theme.horizontalSeparator("Min. players online")).expandX();
-            WTextBox minOnline = add(theme.textBox("10", "10")).minWidth(100).widget();
+            WTextBox minOnline = add(theme.textBox("0", "10")).minWidth(100).widget();
+            add(theme.label("Minimum number of players online.").color(theme.textSecondaryColor()));
             add(theme.horizontalSeparator("MOTD")).expandX();
-            WTextBox motd = add(theme.textBox("", "An Minecraft Server")).expandX().widget();
+            WTextBox motd = add(theme.textBox("", "A Minecraft Server")).expandX().widget();
+            add(theme.label("Text that should appear in MOTD of found servers.").color(theme.textSecondaryColor()));
             add(theme.horizontalSeparator()).expandX();
             WButton submit = add(theme.button("Search")).widget();
             submit.action = () -> {
@@ -74,7 +103,7 @@ public class ScannerScreen extends WindowScreen {
 
     private void search(int limit, String version, int min_online, String motdFilter) {
         table.clear();
-        List<FoundServer> servers = API.getServers(limit, version, min_online, motdFilter);
+        servers = API.getServers(limit, version, min_online, motdFilter);
         if (servers == null) {
             table.add(theme.label("Network error"));
             return;
@@ -86,12 +115,16 @@ public class ScannerScreen extends WindowScreen {
 
         for (FoundServer server : servers) {
             String rawMotd = server.motd();
+            if (rawMotd == null) {
+                rawMotd = "null";
+            }
             String motd = rawMotd.length() > 30
                 ? rawMotd.substring(0, 27) + "..."
                 : rawMotd;
 
             WButton addBtn = table.add(theme.button("Add")).widget();
             addBtn.action = () -> {
+                addBtn.set("Adding...");
                 MinecraftClient client = MinecraftClient.getInstance();
 
                 ServerList list = new ServerList(client);
