@@ -31,3 +31,6 @@ bin/
 # fabric
 
 run/
+
+# API
+src/main/java/xyz/nullnetdev/enderscanaddon/utils/API.java
